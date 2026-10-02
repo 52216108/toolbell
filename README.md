@@ -19,7 +19,7 @@ toolbell 会自动扫描你电脑上**主动安装**的开发工具（Homebrew�
 请帮我安装并配置 toolbell（https://github.com/52216108/toolbell）：一个检测本机开发工具更新、推送到飞书/企业微信/钉钉的命令行工具。按以下步骤执行，每步检查输出，出错就停下告诉我原因：
 
 1. 运行 node -v，确认 Node.js ≥ 20；不满足就停下告诉我。只支持 macOS 和 Linux。
-2. 运行 npm i -g github:52216108/toolbell 安装，再用 toolbell --version 确认。
+2. 运行 npm i -g https://github.com/52216108/toolbell/releases/latest/download/toolbell.tgz 安装，再用 toolbell --version 确认。
 3. 运行 toolbell list，按来源简要汇总发现的工具给我看，问我有没有不想跟踪的；对我说不要的，逐个执行 toolbell ignore <key>（key 是 list 输出每行最后一列）。
 4. 问我要推送到哪个渠道（飞书 / 企业微信 / 钉钉）和群机器人的 webhook 地址；飞书、钉钉如果开了「加签」，再问我要密钥。执行：
    toolbell channel add <feishu|wecom|dingtalk> <webhook> [--secret <密钥>]
@@ -39,7 +39,7 @@ toolbell 会自动扫描你电脑上**主动安装**的开发工具（Homebrew�
 ### 方式二：自己装
 
 ```bash
-npm i -g github:52216108/toolbell
+npm i -g https://github.com/52216108/toolbell/releases/latest/download/toolbell.tgz
 toolbell init
 ```
 
