@@ -40,42 +40,36 @@ AI 影响评估（开启后附在末尾）
 - macOS（launchd 定时）或 Linux（crontab 定时）；暂不支持 Windows
 - Node.js ≥ 20
 
-## 安装
-
-### 方式一：让 AI Agent 帮你装（推荐）
-
-把下面这段话整段复制给你的 AI 编程助手（Claude Code、Codex、Cursor 等），它会一步步帮你装好，需要你决定的地方会停下来问你：
-
-```text
-请帮我安装并配置 toolbell（https://github.com/52216108/toolbell）：一个检测本机开发工具更新、推送到飞书/企业微信/钉钉的命令行工具。按以下步骤执行，每步检查输出，出错就停下告诉我原因：
-
-1. 运行 node -v，确认 Node.js ≥ 20；不满足就停下告诉我。只支持 macOS 和 Linux。
-2. 运行 npm i -g https://github.com/52216108/toolbell/releases/latest/download/toolbell.tgz 安装，再用 toolbell --version 确认。
-3. 运行 toolbell list，按来源简要汇总发现的工具给我看，问我有没有不想跟踪的；对我说不要的，逐个执行 toolbell ignore <key>（key 是 list 输出每行最后一列）。工具很多时也可以提议我自己运行 toolbell ui，在网页里勾选。
-4. 问我要推送到哪个渠道（飞书 / 企业微信 / 钉钉）和群机器人的 webhook 地址；飞书、钉钉如果开了「加签」，再问我要密钥。执行：
-   toolbell channel add <feishu|wecom|dingtalk> <webhook> [--secret <密钥>]
-   钉钉如果用的是「自定义关键词」安全设置，提醒我把关键词设为 toolbell。我说不需要通知就跳过这步。
-5. 问我要不要开启「AI 解读 changelog」（需要我自己的大模型 API Key）。要的话问清服务商和模型名，执行：
-   toolbell ai set --provider <deepseek|ark|dashscope|openai|openrouter> --model <模型名> --profile "<我的技术栈>"
-   其他 OpenAI 兼容接口用 --base-url <地址> 代替 --provider。--profile 可以根据你对我当前项目的了解来写，写之前给我确认。
-   注意：不要在对话里向我索要 API Key。请让我自己打开终端运行 toolbell ai key 输入，或者运行 toolbell ui 在网页里填写。
-6. 问我有没有自己 clone 的 GitHub 仓库、或直接下载 GitHub Release 的工具要跟踪，有的话分别用 toolbell repo add <路径> 和 toolbell release add <名称> --repo <owner/repo> --version-cmd "<取版本的命令>" 登记。
-7. 问我每天几点检测（默认 09:30），执行 toolbell schedule <HH:MM>。
-8. 执行 toolbell check --dry-run，把结果给我看。我确认后执行 toolbell test-notify 发一条真实消息，请我去群里确认收到。
-9. 最后运行 toolbell status 做个汇总。
-
-注意：toolbell 只检测、不升级，不要替我执行任何升级命令；也不要运行 toolbell init（那是给人用的交互式向导）。
-```
-
-### 方式二：自己装
+## 快速开始
 
 ```bash
 npm i -g https://github.com/52216108/toolbell/releases/latest/download/toolbell.tgz
-toolbell ui      # 网页配置（推荐）
-# 或 toolbell init  终端交互式配置
+toolbell
 ```
 
-> `init` 是交互式向导，会依次：扫描本机工具并让你勾选 → 选择是否跟踪本地 git 仓库 → 配置通知渠道 → 配置 AI 解读（可跳过）→ 设定每天检测时间并注册定时任务。
+首次运行会自动打开本地配置网页，跟着页面顶部的引导走：
+
+1. 在「跟踪的工具」里取消勾选不需要检测的（每个工具都附中文简介，默认全部跟踪）；
+2. 在「通知渠道」填飞书 / 企业微信 / 钉钉群机器人的 webhook；
+3. 点「保存并更新定时任务」，之后每天按时自动检测；
+4. 点「发送测试消息」，到群里确认能收到。
+
+以后想改配置，运行 `toolbell ui` 重新打开网页。
+
+### 让 AI Agent 帮你装
+
+也可以把下面这段话复制给你的 AI 编程助手（Claude Code、Codex、Cursor 等）：
+
+```text
+请帮我安装 toolbell（https://github.com/52216108/toolbell），一个检测本机开发工具更新、推送到飞书/企业微信/钉钉的工具：
+1. 运行 node -v 确认 Node.js ≥ 20（只支持 macOS 和 Linux），不满足就停下告诉我。
+2. 运行 npm i -g https://github.com/52216108/toolbell/releases/latest/download/toolbell.tgz 安装，再用 toolbell --version 确认。
+3. 在后台运行 toolbell ui（它会一直运行，直到我在网页上点「完成」）。macOS 会自动打开浏览器；如果没打开，把输出里的网址发给我。告诉我在网页里按顶部引导完成配置。
+4. 我说配置好了以后，运行 toolbell status 给我汇总结果。
+注意：不要在对话里向我索要 webhook 或 API Key，这些我会自己在网页里填；也不要替我执行任何升级命令。
+```
+
+> 没有浏览器的环境（例如远程服务器），可以用 `toolbell init` 终端向导，或下方「命令行参考」里的非交互命令完成配置。
 
 ### 升级与卸载
 
@@ -88,10 +82,13 @@ toolbell schedule --off
 npm rm -g toolbell
 ```
 
-## 常用命令
+## 命令行参考
+
+日常用网页就够了；下面的命令适合写脚本、远程服务器或喜欢命令行的场景。
 
 | 命令 | 作用 |
 |---|---|
+| `toolbell` | 未配置时打开网页配置；已配置时显示状态 |
 | `toolbell ui` | 打开本地网页，可视化配置（勾选工具、渠道、AI、定时）；Linux 下默认只打印地址，加 `--open` 自动打开 |
 | `toolbell init` | 终端交互式配置向导 |
 | `toolbell check` | 立即检测一次，有更新就推送 |

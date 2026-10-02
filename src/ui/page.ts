@@ -68,6 +68,11 @@ export const PAGE_HTML = /* html */ `<!doctype html>
   #toast.show { opacity: .95; }
   #toast.error { background: var(--danger); color: #fff; }
   .loading { color: var(--muted); padding: 40px 0; text-align: center; }
+  .guide { background: var(--accent-weak); border-color: var(--accent); }
+  .guide ol { margin: 8px 0 0; padding-left: 0; list-style: none; }
+  .guide li { padding: 3px 0; }
+  .guide li.done { color: var(--muted); }
+  .guide li .mark { display: inline-block; width: 22px; }
 </style>
 </head>
 <body>
@@ -134,8 +139,25 @@ export const PAGE_HTML = /* html */ `<!doctype html>
   // ---------- 渲染 ----------
   function render() {
     const app = $('#app');
-    app.innerHTML = [toolsSection(), channelsSection(), aiSection(), scheduleSection(), manualSection(), previewSection()].join('');
+    app.innerHTML = [guideSection(), toolsSection(), channelsSection(), aiSection(), scheduleSection(), manualSection(), previewSection()].join('');
     $('#meta').textContent = S.schedule + (S.lastRunAt ? ' · 上次检测 ' + new Date(S.lastRunAt).toLocaleString('zh-CN') : '');
+  }
+
+  // 首次使用引导：没配置、没渠道或没注册定时任务时显示，全部完成后提示发测试消息
+  let tested = false;
+  function guideSection() {
+    const hasChannel = S.config.channels.length > 0;
+    const steps = [
+      [S.configured, '在下方「跟踪的工具」里取消勾选不需要检测的工具（默认全部跟踪）'],
+      [hasChannel, '在「通知渠道」添加飞书 / 企业微信 / 钉钉群机器人的 webhook'],
+      [S.scheduleInstalled && S.configured, '点右下角「保存并更新定时任务」，之后每天按时自动检测'],
+      [tested, '点「发送测试消息」，到群里确认能收到'],
+    ];
+    if (steps.every((s) => s[0])) return '';
+    const allButTest = steps.slice(0, 3).every((s) => s[0]);
+    return '<section class="guide"><h2>' + (S.configured ? '还差几步就配置好了' : '欢迎使用 toolbell 👋 跟着这几步完成配置') + '</h2>' +
+      '<ol>' + steps.map((s, i) => '<li class="' + (s[0] ? 'done' : '') + '"><span class="mark">' + (s[0] ? '✅' : (i + 1) + '.') + '</span>' + s[1] + '</li>').join('') + '</ol>' +
+      (allButTest ? '<p class="desc" style="margin:8px 0 0">AI 解读、本地仓库等都是可选项，不配也能用。</p>' : '') + '</section>';
   }
 
   function toolsSection() {
@@ -344,7 +366,7 @@ export const PAGE_HTML = /* html */ `<!doctype html>
     if (dirty) await save(false);
     const r = await api('/api/test-notify', {});
     const failed = r.sent.filter((s) => !s.ok);
-    if (failed.length === 0) toast('已发送到 ' + r.sent.length + ' 个渠道，请到群里查看');
+    if (failed.length === 0) { tested = true; render(); toast('已发送到 ' + r.sent.length + ' 个渠道，请到群里查看'); }
     else toast('发送失败：' + failed.map((s) => S.channelLabels[s.type] + '（' + s.error + '）').join('；'), true);
   });
   $('#done').onclick = async () => {

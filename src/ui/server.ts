@@ -130,7 +130,8 @@ export async function startUi(opts: UiOptions = {}): Promise<void> {
   }
 
   async function state() {
-    const config: Config = (await loadConfig()) ?? defaultConfig();
+    const loaded = await loadConfig();
+    const config: Config = loaded ?? defaultConfig();
     // 发现时忽略「来源开关」，让关掉的来源也能在页面上看到并重新打开
     const found = await discoverAll({ dryRun: true, log: () => {}, config: { ...config, scanners: {} } });
     const lastRun = await readFile(lastRunPath(), 'utf8')
@@ -153,7 +154,8 @@ export async function startUi(opts: UiOptions = {}): Promise<void> {
         })),
       })),
       lastRunAt: lastRun?.startedAt,
-      schedule: (await scheduleStatus()).detail,
+      configured: loaded !== undefined,
+      ...(await scheduleStatus().then((st) => ({ schedule: st.detail, scheduleInstalled: st.installed }))),
       presets: aiPresets,
       channelLabels,
     };

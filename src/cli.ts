@@ -175,6 +175,17 @@ program
     await startUi({ port: opts.port, open: opts.open });
   });
 
+// 不带子命令直接运行 toolbell：首次使用打开网页配置，之后显示状态
+program.action(async () => {
+  if (!(await loadConfig())) {
+    console.log('还没有配置，正在打开网页配置页…');
+    const { startUi } = await import('./ui/server.js');
+    return startUi({});
+  }
+  await program.parseAsync(['status'], { from: 'user' });
+  console.log(pc.dim('\n打开网页修改配置：toolbell ui　　查看全部命令：toolbell --help'));
+});
+
 program.parseAsync().catch((err: unknown) => {
   console.error(pc.red((err as Error).message));
   process.exit(1);
