@@ -18,6 +18,14 @@ toolbell init
 
 > 需要 Node.js ≥ 20。定时任务会指向全局安装的 toolbell，用 `npx toolbell` 临时运行时只能手动检测。
 
+> ⚠️ 尚未发布到 npm，目前请从源码安装：
+>
+> ```bash
+> git clone https://github.com/52216108/toolbell.git && cd toolbell
+> pnpm install && pnpm build && npm i -g .
+> toolbell init
+> ```
+
 `init` 会依次：扫描本机工具并让你勾选 → 选择是否跟踪本地 git 仓库 → 配置通知渠道 → 配置 AI 解读（可跳过）→ 设定每天检测时间并注册定时任务。
 
 ## 常用命令
