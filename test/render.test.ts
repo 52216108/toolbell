@@ -13,7 +13,7 @@ const r = (x: Partial<CheckResult> & { name: string; source?: CheckResult['tool'
 });
 
 const base = (results: CheckResult[], digest?: string): Report => ({
-  hostname: 'gavin-mbp',
+  hostname: 'my-mac',
   startedAt: new Date(2026, 9, 2, 9, 5),
   durationMs: 12_345,
   results,
@@ -32,7 +32,7 @@ describe('renderMarkdown', () => {
 
   it('按来源分组、失败/提示/最新计数/耗时', () => {
     const md = renderMarkdown(base(results));
-    expect(md).toContain('# 🔔 toolbell 更新提醒 · gavin-mbp · 2026-10-02 09:05');
+    expect(md).toContain('# 🔔 toolbell 更新提醒 · my-mac · 2026-10-02 09:05');
     expect(md).toContain('## ⚠️ 有 3 项可更新');
     // 分组顺序按 SourceId 登记顺序：Homebrew 在 uv 之前，Git 在后
     expect(md.indexOf('**Homebrew**')).toBeLessThan(md.indexOf('**uv 工具**'));

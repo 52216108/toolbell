@@ -29,6 +29,15 @@
     "changelog",
     "claude-code"
   ],
+  "author": "Gavin Guo",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/52216108/toolbell.git"
+  },
+  "homepage": "https://github.com/52216108/toolbell#readme",
+  "bugs": {
+    "url": "https://github.com/52216108/toolbell/issues"
+  },
   "license": "MIT",
   "dependencies": {
     "@clack/prompts": "^1.8.1",
