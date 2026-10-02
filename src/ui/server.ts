@@ -34,7 +34,6 @@ export async function startUi(opts: UiOptions = {}): Promise<void> {
   let port = 0;
 
   const server = createServer((req, res) => {
-    resetIdle();
     handle(req, res).catch((err: unknown) => {
       const msg = err instanceof PatchError ? err.message : `内部错误：${(err as Error).message}`;
       json(res, err instanceof PatchError ? 400 : 500, { error: msg });
@@ -53,7 +52,10 @@ export async function startUi(opts: UiOptions = {}): Promise<void> {
 
   const authorized = (req: IncomingMessage, url: URL): boolean => {
     const host = req.headers.host ?? '';
-    if (host !== `127.0.0.1:${port}` && host !== `localhost:${port}`) return false;
+    // 浏览器访问默认端口时 Host 不带端口号
+    const allowed = [`127.0.0.1:${port}`, `localhost:${port}`];
+    if (port === 80) allowed.push('127.0.0.1', 'localhost');
+    if (!allowed.includes(host)) return false;
     const given = String(req.headers['x-toolbell-token'] ?? url.searchParams.get('t') ?? '');
     const a = Buffer.from(given);
     const b = Buffer.from(token);
@@ -63,6 +65,8 @@ export async function startUi(opts: UiOptions = {}): Promise<void> {
   async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     if (!authorized(req, url)) return json(res, 403, { error: '链接无效或已过期，请重新运行 toolbell ui' });
+    // 只有通过鉴权的请求才算「有操作」，否则同机任意网页反复探测就能让服务常驻
+    resetIdle();
 
     if (req.method === 'GET' && url.pathname === '/') {
       res.writeHead(200, {
@@ -165,7 +169,9 @@ export async function startUi(opts: UiOptions = {}): Promise<void> {
   resetIdle();
 
   console.log(`toolbell 配置页已启动：\n\n  ${link}\n\n在浏览器打开上面的地址进行配置；完成后点页面右上角「完成」或按 Ctrl+C 退出。`);
-  if (opts.open !== false) {
+  // Linux 上 xdg-open 可能把带 token 的链接留在浏览器进程参数里，同机其他用户 ps 可见，默认不自动打开
+  const autoOpen = opts.open ?? platform() === 'darwin';
+  if (autoOpen) {
     const opener = platform() === 'darwin' ? 'open' : platform() === 'win32' ? 'explorer' : 'xdg-open';
     void run(opener, [link], { timeoutMs: 10_000 });
   }

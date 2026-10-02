@@ -17,7 +17,8 @@ const program = new Command();
 program
   .name('toolbell')
   .description('扫描本机开发工具，每天检测更新并推送到飞书 / 企业微信 / 钉钉（只提醒，不自动升级）')
-  .version(__TOOLBELL_VERSION__);
+  // tsx 直跑源码（pnpm dev）时没有构建期注入的常量
+  .version(typeof __TOOLBELL_VERSION__ === 'string' ? __TOOLBELL_VERSION__ : 'dev');
 
 async function requireConfig(): Promise<Config> {
   const c = await loadConfig();
@@ -166,8 +167,10 @@ program
   .command('ui')
   .description('打开本地网页，可视化配置要跟踪的工具、通知渠道、AI 解读与定时')
   .option('--port <port>', '指定端口（默认随机）', (v) => Number(v))
+  // 同时声明 --open / --no-open，commander 才不会把默认值定成 true（默认交给平台判断：macOS 自动打开，Linux 只打印）
+  .option('--open', '自动打开浏览器')
   .option('--no-open', '不自动打开浏览器，只打印地址')
-  .action(async (opts: { port?: number; open: boolean }) => {
+  .action(async (opts: { port?: number; open?: boolean }) => {
     const { startUi } = await import('./ui/server.js');
     await startUi({ port: opts.port, open: opts.open });
   });

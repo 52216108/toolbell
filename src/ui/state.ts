@@ -1,7 +1,8 @@
 // 网页配置的数据交换：页面拿到的是「脱敏视图」，提交回来的是「白名单补丁」。
 // 凭证（webhook 全文、加签密钥、API Key）从不下发给页面；页面不改它们时，原值保持不变。
 
-import { parseTime } from '../config.js';
+import { resolve } from 'node:path';
+import { expandHome, parseTime } from '../config.js';
 import { maskWebhook } from '../notifiers/shared.js';
 import { AI_PRESETS, CHANNEL_LABEL, WEBHOOK_PATTERN } from '../presets.js';
 import type { ChannelConfig, ChannelType, Config, GitRepoEntry, GithubReleaseEntry, SourceId } from '../types.js';
@@ -129,7 +130,8 @@ export function applyPatch(current: Config, patch: ConfigPatch): Config {
   if (Array.isArray(patch.gitRepos)) {
     next.gitRepos = patch.gitRepos
       .filter((r) => str(r.path))
-      .map((r) => ({ path: str(r.path), ...(str(r.updateCommand) ? { updateCommand: str(r.updateCommand) } : {}) }));
+      // 统一绝对路径：定时任务的工作目录与网页服务不同，相对路径会找不到
+      .map((r) => ({ path: resolve(expandHome(str(r.path))), ...(str(r.updateCommand) ? { updateCommand: str(r.updateCommand) } : {}) }));
   }
 
   if (Array.isArray(patch.githubReleases)) {

@@ -69,3 +69,11 @@ describe('applyPatch', () => {
     expect(applyPatch(base(), { schedule: { time: '08:45' } }).schedule).toEqual({ time: '08:45' });
   });
 });
+
+describe('gitRepos 路径', () => {
+  it('相对路径与 ~ 都存成绝对路径', () => {
+    const next = applyPatch(base(), { gitRepos: [{ path: '~/a' }, { path: 'rel/b' }] });
+    expect(next.gitRepos.every((r) => r.path.startsWith('/'))).toBe(true);
+    expect(next.gitRepos[0]!.path.endsWith('/a')).toBe(true);
+  });
+});

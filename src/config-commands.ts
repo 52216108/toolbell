@@ -1,6 +1,7 @@
 import * as p from '@clack/prompts';
 import type { Command } from 'commander';
 import pc from 'picocolors';
+import { resolve } from 'node:path';
 import { defaultConfig, expandHome, loadConfig, saveConfig } from './config.js';
 import { maskWebhook } from './notifiers/shared.js';
 import { AI_PRESETS, CHANNEL_LABEL, WEBHOOK_PATTERN } from './presets.js';
@@ -11,6 +12,9 @@ import type { ChannelType, Config } from './types.js';
 // 避免 Key 出现在 Agent 对话记录里。
 
 const ensureConfig = async (): Promise<Config> => (await loadConfig()) ?? defaultConfig();
+
+/** 统一成绝对路径存储：定时任务的工作目录和执行命令时不同，相对路径（如 repo add .）到定时运行时就找不到了 */
+const absRepoPath = (p: string) => resolve(expandHome(p));
 
 function fail(msg: string): never {
   console.error(pc.red(msg));
@@ -87,9 +91,11 @@ export function registerConfigCommands(program: Command): void {
       if (!model) fail('缺少模型名：请用 --model 指定');
       const apiKey = cur?.apiKey ?? '';
       const profile = opts.profile?.trim() ?? cur?.profile;
-      config.ai = { enabled: apiKey !== '', baseURL, apiKey, model, ...(profile ? { profile } : {}) };
+      // 沿用原开关：用户 ai off 后改模型不应悄悄重新开启付费调用；没有 Key 一律关闭
+      const enabled = apiKey !== '' && (cur?.enabled ?? true);
+      config.ai = { enabled, baseURL, apiKey, model, ...(profile ? { profile } : {}) };
       await saveConfig(config);
-      console.log(`AI 接口已设置：${baseURL}，模型 ${model}`);
+      console.log(`AI 接口已设置：${baseURL}，模型 ${model}（AI 解读：${enabled ? '开启' : '关闭'}）`);
       if (!apiKey) {
         console.log(pc.yellow('还没有 API Key，AI 解读暂未开启。请在你自己的终端运行：toolbell ai key'));
       }
@@ -129,17 +135,18 @@ export function registerConfigCommands(program: Command): void {
     .action(async (path: string, opts: { updateCmd?: string }) => {
       const config = await ensureConfig();
       const { stat } = await import('node:fs/promises');
-      const ok = await stat(`${expandHome(path)}/.git`).then(
+      const abs = absRepoPath(path);
+      const ok = await stat(`${abs}/.git`).then(
         () => true,
         () => false,
       );
       if (!ok) fail(`${path} 不是 git 仓库`);
       config.gitRepos = [
-        ...config.gitRepos.filter((r) => expandHome(r.path) !== expandHome(path)),
-        { path, ...(opts.updateCmd ? { updateCommand: opts.updateCmd } : {}) },
+        ...config.gitRepos.filter((r) => absRepoPath(r.path) !== abs),
+        { path: abs, ...(opts.updateCmd ? { updateCommand: opts.updateCmd } : {}) },
       ];
       await saveConfig(config);
-      console.log(`已登记仓库 ${path}`);
+      console.log(`已登记仓库 ${abs}`);
     });
 
   repo
@@ -147,7 +154,7 @@ export function registerConfigCommands(program: Command): void {
     .description('取消跟踪某个仓库')
     .action(async (path: string) => {
       const config = await ensureConfig();
-      config.gitRepos = config.gitRepos.filter((r) => expandHome(r.path) !== expandHome(path));
+      config.gitRepos = config.gitRepos.filter((r) => absRepoPath(r.path) !== absRepoPath(path));
       await saveConfig(config);
       console.log(`已移除仓库 ${path}`);
     });
