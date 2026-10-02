@@ -59,7 +59,7 @@ pnpm build                    # 构建到 dist/
 
 ## 提交 PR
 
-- 一个 PR 只做一件事；改了行为请同步更新 `README.md`，并在 `CHANGELOG.md` 的「未发布」下记一笔。
+- 一个 PR 只做一件事；改了行为请同步更新 `README.md` 与英文版 `README.en.md`（两版保持一致），并在 `CHANGELOG.md` 的「未发布」下记一笔。
 - 提交前本地跑通 `pnpm typecheck && pnpm test && pnpm build`（CI 也会在 macOS / Linux 上跑一遍）。
 - 提交信息、注释、文案使用中文。
 

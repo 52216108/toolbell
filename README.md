@@ -4,6 +4,8 @@
 [![Release](https://img.shields.io/github/v/release/52216108/toolbell)](https://github.com/52216108/toolbell/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+**简体中文** | [English](README.en.md)
+
 > 你的开发工具有新版了，它会告诉你。
 
 toolbell 会自动扫描你电脑上**主动安装**的开发工具（Homebrew、npm / pnpm 全局包、uv、pipx、cargo、GitHub Release 二进制、本地 git 克隆、Claude Code 插件……），每天定时检测有没有新版本，推送到**飞书 / 企业微信 / 钉钉**群机器人。可选接入大模型，把一堆 changelog 读成「哪些对你真正有影响」。
@@ -187,16 +189,9 @@ toolbell release add multica --repo multica-ai/multica --version-cmd "multica --
 
 **某个工具不想再收到提醒？** `toolbell ignore <key>`，或在 `toolbell ui` 网页里取消勾选。整个来源都不想要，可以在网页里关闭「检测此来源」。
 
-## 开发
+## 参与贡献
 
-```bash
-pnpm install
-pnpm dev check --dry-run -v   # 用源码直接跑
-pnpm test
-pnpm build
-```
-
-新增一个来源：在 `src/scanners/` 实现 `Scanner` 接口（见 `src/types.ts`），并在 `src/scanners/index.ts` 注册。
+开发环境、目录结构、新增检测来源、发布流程见 [CONTRIBUTING.md](CONTRIBUTING.md)；安全问题请按 [SECURITY.md](SECURITY.md) 私密报告。
 
 ## License
 

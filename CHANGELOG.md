@@ -8,6 +8,7 @@
 ### 新增
 
 - 贡献者行为准则 `CODE_OF_CONDUCT.md`（Contributor Covenant 2.1 中文改编）
+- 英文版 README（`README.en.md`），中英文 README 顶部可互相切换
 
 ## [0.3.1] - 2026-10-02
 
