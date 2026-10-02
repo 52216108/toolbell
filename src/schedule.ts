@@ -1,7 +1,7 @@
-import { mkdir, readFile, realpath, unlink, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, realpath, unlink, writeFile } from 'node:fs/promises';
 import { homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
-import { logPath, parseTime } from './config.js';
+import { configDir, logPath, parseTime } from './config.js';
 import { run } from './util/exec.js';
 
 // 定时任务：macOS 用 launchd（用户级 LaunchAgent），Linux 用用户 crontab。
@@ -43,6 +43,43 @@ export function stablePath(path: string, env: NodeJS.ProcessEnv = process.env, h
 const xmlEscape = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+/**
+ * 定时环境只有极少的环境变量，需要把影响 toolbell 行为的变量带过去，否则定时任务会「成功运行但读错配置」：
+ * XDG_CONFIG_HOME 不带 → 读不到 init 写的配置、永远不推送；代理不带 → 国内网络下每天 fetch 失败；
+ * 镜像源（HOMEBREW_*、npm/pip/uv 源）不带 → 和终端里结果不一致。
+ * plist 与 crontab 不是加密存储，名字像密钥的变量一律不写（GitHub 认证可走 gh auth token 读钥匙串）。
+ */
+const PASSTHROUGH_ENV = [
+  'XDG_CONFIG_HOME',
+  'CLAUDE_CONFIG_DIR',
+  'FNM_DIR',
+  'HTTP_PROXY',
+  'HTTPS_PROXY',
+  'ALL_PROXY',
+  'NO_PROXY',
+  'http_proxy',
+  'https_proxy',
+  'all_proxy',
+  'no_proxy',
+  'NPM_CONFIG_REGISTRY',
+  'npm_config_registry',
+  'UV_INDEX_URL',
+  'UV_DEFAULT_INDEX',
+  'PIP_INDEX_URL',
+  'CARGO_HOME',
+  'RUSTUP_HOME',
+];
+const SECRET_LIKE = /TOKEN|SECRET|PASSWORD|PASSWD|KEY|CREDENTIAL|AUTH/i;
+
+export function passthroughEnv(env: NodeJS.ProcessEnv = process.env): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(env)) {
+    if (!v || SECRET_LIKE.test(k)) continue;
+    if (PASSTHROUGH_ENV.includes(k) || k.startsWith('HOMEBREW_')) out[k] = v;
+  }
+  return out;
+}
+
 export function buildPlist(opts: {
   cli: string;
   hour: number;
@@ -50,8 +87,12 @@ export function buildPlist(opts: {
   path: string;
   home: string;
   log: string;
+  env?: Record<string, string>;
 }): string {
   const s = (v: string) => `<string>${xmlEscape(v)}</string>`;
+  const extra = Object.entries(opts.env ?? {})
+    .map(([k, v]) => `<key>${xmlEscape(k)}</key>${s(v)}`)
+    .join('');
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -62,7 +103,7 @@ export function buildPlist(opts: {
   <key>StartCalendarInterval</key>
   <dict><key>Hour</key><integer>${opts.hour}</integer><key>Minute</key><integer>${opts.minute}</integer></dict>
   <key>EnvironmentVariables</key>
-  <dict><key>PATH</key>${s(opts.path)}<key>HOME</key>${s(opts.home)}</dict>
+  <dict><key>PATH</key>${s(opts.path)}<key>HOME</key>${s(opts.home)}${extra}</dict>
   <key>StandardOutPath</key>${s(opts.log)}
   <key>StandardErrorPath</key>${s(opts.log)}
 </dict>
@@ -87,20 +128,31 @@ export async function installSchedule(time: string): Promise<string> {
   if (os === 'darwin') {
     const file = plistPath();
     await mkdir(join(homedir(), 'Library', 'LaunchAgents'), { recursive: true });
-    await writeFile(
-      file,
-      buildPlist({ cli, hour, minute, path, home: homedir(), log: logPath() }),
-    );
+    // 600：PATH 与代理地址也算本机隐私，不必让同机其他用户读到
+    await writeFile(file, buildPlist({ cli, hour, minute, path, home: homedir(), log: logPath(), env: passthroughEnv() }), {
+      mode: 0o600,
+    });
+    await chmod(file, 0o600);
     const domain = `gui/${userInfo().uid}`;
-    // 已加载过先卸载再加载，才能让新时间生效；首次安装时 bootout 报错属正常
+    // 已加载过先卸载再加载，才能让新时间生效；首次安装时 bootout 报错属正常。
+    // bootout 是异步完成的，紧接着 bootstrap 偶发「Bootstrap failed: 5」，稍等重试一次
     await run('launchctl', ['bootout', domain, file]);
-    const r = await run('launchctl', ['bootstrap', domain, file]);
+    let r = await run('launchctl', ['bootstrap', domain, file]);
+    if (r.code !== 0) {
+      await new Promise((res) => setTimeout(res, 1_500));
+      r = await run('launchctl', ['bootstrap', domain, file]);
+    }
     if (r.code !== 0) throw new Error(`launchctl bootstrap 失败：${r.stderr.trim()}`);
     return `已注册 launchd 任务（${LABEL}），每天 ${time} 运行`;
   }
 
   if (os === 'linux') {
-    const line = `${minute} ${hour} * * * PATH=${shellQuote(path)} ${shellQuote(cli)} check >> ${shellQuote(logPath())} 2>&1 ${CRON_MARK}`;
+    const envPrefix = Object.entries({ PATH: path, ...passthroughEnv() })
+      .map(([k, v]) => `${k}=${shellQuote(v)}`)
+      .join(' ');
+    // cron 会把命令里的 % 当换行，必须转义
+    const command = `${envPrefix} ${shellQuote(cli)} check >> ${shellQuote(logPath())} 2>&1`.replace(/%/g, '\\%');
+    const line = `${minute} ${hour} * * * ${command} ${CRON_MARK}`;
     const current = await readCrontab();
     const next = [...current.filter((l) => !l.includes(CRON_MARK)), line].join('\n') + '\n';
     await writeCrontab(next);
@@ -156,11 +208,19 @@ function shellQuote(s: string): string {
 
 async function readCrontab(): Promise<string[]> {
   const r = await run('crontab', ['-l']);
-  // 没有 crontab 时退出码非零，视为空
-  return r.code === 0 ? r.stdout.split('\n').filter((l) => l.trim() !== '') : [];
+  if (r.code === 0) return r.stdout.split('\n').filter((l) => l.trim() !== '');
+  // 只有「本来就没有 crontab」才当空表；其他失败若当空表处理，随后的写入会把用户整张 crontab 覆盖掉
+  if (/no crontab for/i.test(r.stderr)) return [];
+  throw new Error(`读取 crontab 失败，为避免覆盖已有任务已中止：${r.stderr.trim()}`);
 }
 
 async function writeCrontab(content: string): Promise<void> {
+  // 覆写前留一份原文，出问题可用 crontab <备份文件> 恢复
+  const current = await run('crontab', ['-l']);
+  if (current.code === 0) {
+    await mkdir(configDir(), { recursive: true, mode: 0o700 });
+    await writeFile(join(configDir(), 'crontab.bak'), current.stdout, { mode: 0o600 });
+  }
   const { spawn } = await import('node:child_process');
   await new Promise<void>((resolve, reject) => {
     const p = spawn('crontab', ['-'], { stdio: ['pipe', 'ignore', 'pipe'] });

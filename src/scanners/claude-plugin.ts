@@ -183,11 +183,15 @@ async function loadMarketplace(mp: string, known: KnownMarketplaces, ctx: CheckC
   return { ...state, manifest };
 }
 
+// marketplace 清单来自第三方仓库：只接受常规远程地址，防止以 - 开头的值被 git 当成选项
+const SAFE_REMOTE = /^(https?:\/\/|ssh:\/\/|git@)[^\s]+$/;
+
 async function lsRemote(url: string, ref: string): Promise<string | undefined> {
+  if (!SAFE_REMOTE.test(url) || ref.startsWith('-')) return undefined;
   try {
     return await retry(
       async () => {
-        const r = await run('git', ['ls-remote', url, ref], {
+        const r = await run('git', ['ls-remote', '--', url, ref], {
           timeoutMs: 30_000,
           env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
         });

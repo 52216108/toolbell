@@ -38,8 +38,14 @@ program
   .option('--json', '以 JSON 输出检测结果')
   .option('-v, --verbose', '打印过程日志')
   .action(async (opts: { dryRun?: boolean; notify: boolean; json?: boolean; verbose?: boolean }) => {
-    // 没配置也允许检测（终端自查），只是不会推送
-    const config = (await loadConfig()) ?? defaultConfig();
+    const loaded = await loadConfig();
+    // 定时任务（非终端）读不到配置时必须报错退出：静默用默认配置会「每天成功运行却永远不推送」
+    if (!loaded && !process.stdout.isTTY && !opts.dryRun) {
+      console.error(`[toolbell] 找不到配置文件 ${configPath()}，本次检测未执行。请在终端运行 toolbell init`);
+      process.exit(1);
+    }
+    // 终端里没配置也允许检测自查，只是不会推送
+    const config = loaded ?? defaultConfig();
     const report = await runCheck(config, { dryRun: !!opts.dryRun, notify: opts.notify, verbose: !!opts.verbose });
     if (opts.json) {
       console.log(JSON.stringify(report, null, 2));

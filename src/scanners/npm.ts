@@ -1,7 +1,7 @@
 // npm 全局包：一次 `npm outdated -g --json` 拿全部过期信息，不逐包查 registry。
 import type { CheckResult, Scanner, Tool } from '../types.js';
 import { hasCommand, run } from '../util/exec.js';
-import { briefError, errMsg, errorResult, mapLimit, npmLatest } from './common.js';
+import { briefError, errMsg, errorResult, isNewer, mapLimit, npmLatest } from './common.js';
 
 // corepack 随 Node 发布、不该单独 npm i -g 升级；npm 本身保留（它也是用户工具）
 const SKIP = new Set(['corepack']);
@@ -59,7 +59,8 @@ export const npmScanner: Scanner = {
     return mapLimit(tools, 6, async (t): Promise<CheckResult> => {
       const updateCommand = `npm i -g ${t.name}@latest`;
       const e = outdated.get(t.name);
-      if (!e?.latest || e.latest === (e.current ?? t.installed)) {
+      // 装了 @next/@beta 等比 latest 更新的版本时 npm outdated 也会列出，按「更新」判断，避免把降级当升级提醒
+      if (!e?.latest || !isNewer(e.latest, e.current ?? t.installed)) {
         return { tool: t, status: 'latest', latest: t.installed, updateCommand };
       }
       // repo 只给过期的包查（拉 changelog 用），查不到不影响结论

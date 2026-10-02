@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildPlist, stablePath } from '../src/schedule.js';
+import { buildPlist, passthroughEnv, stablePath } from '../src/schedule.js';
 
 describe('stablePath', () => {
   it('把 fnm 会话临时目录换成默认版本目录并去重', () => {
@@ -21,5 +21,29 @@ describe('buildPlist', () => {
     expect(xml).toContain('<integer>9</integer>');
     expect(xml).toContain('<integer>30</integer>');
     expect(xml).toContain('/a&amp;b');
+  });
+});
+
+describe('passthroughEnv', () => {
+  it('带上配置目录、代理与镜像源，排除像密钥的变量', () => {
+    const env = passthroughEnv({
+      XDG_CONFIG_HOME: '/x',
+      https_proxy: 'http://127.0.0.1:7890',
+      HOMEBREW_BOTTLE_DOMAIN: 'https://mirror',
+      HOMEBREW_GITHUB_API_TOKEN: 'secret',
+      GITHUB_TOKEN: 'secret',
+      OPENAI_API_KEY: 'secret',
+      RANDOM: '1',
+    });
+    expect(env).toEqual({
+      XDG_CONFIG_HOME: '/x',
+      https_proxy: 'http://127.0.0.1:7890',
+      HOMEBREW_BOTTLE_DOMAIN: 'https://mirror',
+    });
+  });
+
+  it('额外环境变量写进 plist', () => {
+    const xml = buildPlist({ cli: '/b/toolbell', hour: 9, minute: 0, path: '/p', home: '/h', log: '/l', env: { XDG_CONFIG_HOME: '/x' } });
+    expect(xml).toContain('<key>XDG_CONFIG_HOME</key><string>/x</string>');
   });
 });

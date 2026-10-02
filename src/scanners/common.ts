@@ -5,8 +5,13 @@ import { compareVersions, sameVersion } from '../util/version.js';
 import { fetchJson } from '../util/retry.js';
 import { parseGithubRepo } from '../util/github.js';
 
+/** remote 地址形如 https://user:TOKEN@host/… 时，git 报错会回显它；进推送和日志前抹掉凭证 */
+export function scrubUrlCredentials(s: string): string {
+  return s.replace(/:\/\/[^/\s:@]+:[^/\s@]+@/g, '://***@').replace(/:\/\/[^/\s:@]{20,}@/g, '://***@');
+}
+
 export function errorResult(tool: Tool, error: string, extra: Partial<CheckResult> = {}): CheckResult {
-  return { tool, status: 'error', error, ...extra };
+  return { tool, status: 'error', error: scrubUrlCredentials(error), ...extra };
 }
 
 /** 命令失败时的简短原因：stderr 第一条非空行，避免把整屏堆栈塞进通知 */
@@ -15,7 +20,7 @@ export function briefError(stderr: string, fallback = '命令执行失败'): str
     .split('\n')
     .map((l) => l.trim())
     .find((l) => l !== '');
-  return (line ?? fallback).slice(0, 300);
+  return scrubUrlCredentials(line ?? fallback).slice(0, 300);
 }
 
 export function errMsg(err: unknown): string {

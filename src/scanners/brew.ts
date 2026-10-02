@@ -95,6 +95,10 @@ export function parseLeaves(stdout: string): string[] {
 
 export function formulaResult(tool: Tool, s: BrewFormulaState): CheckResult {
   const base = { tool, latest: s.latest, repo: s.repo, updateCommand: `brew upgrade ${s.fullName}` };
+  // --HEAD 安装的版本形如 HEAD-abc1234，和 stable 永远不等；brew 自己也要 --fetch-HEAD 才判断，这里不比对
+  if (s.installed.startsWith('HEAD')) {
+    return { ...base, status: 'latest', latest: s.installed, note: '以 --HEAD 安装，不做版本比对' };
+  }
   // 和 brew 自己的判断一致：版本串不同即落后（brew 的版本号格式太杂，比大小不可靠）
   const outdated = s.installed !== s.latest;
   const note = s.pinned ? '已 pin（brew pin），brew upgrade 会跳过它，需先 brew unpin' : undefined;
