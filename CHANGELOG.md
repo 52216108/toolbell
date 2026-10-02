@@ -5,6 +5,10 @@
 
 ## [未发布]
 
+### 新增
+
+- 贡献者行为准则 `CODE_OF_CONDUCT.md`（Contributor Covenant 2.1 中文改编）
+
 ## [0.3.1] - 2026-10-02
 
 ### 新增
