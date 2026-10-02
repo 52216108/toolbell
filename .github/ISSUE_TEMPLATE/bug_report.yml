@@ -1,0 +1,66 @@
+name: 问题反馈
+description: 检测结果不对、推送失败、命令报错等
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！提交前请**删掉 webhook 地址、加签密钥和 API Key**。`toolbell status`、`toolbell channel list` 的输出已脱敏，可以直接贴。
+        安全相关问题请走[私密报告](https://github.com/52216108/toolbell/security/advisories/new)，不要公开提交。
+  - type: input
+    id: version
+    attributes:
+      label: toolbell 版本
+      description: 运行 `toolbell --version`
+      placeholder: 0.3.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: 系统
+      options:
+        - macOS
+        - Linux
+        - 其他
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node.js 版本
+      description: 运行 `node -v`
+      placeholder: v22.22.3
+  - type: dropdown
+    id: area
+    attributes:
+      label: 涉及哪部分
+      multiple: true
+      options:
+        - 工具发现 / 版本检测（某个来源）
+        - 推送（飞书 / 企业微信 / 钉钉）
+        - AI 解读 / 中文简介
+        - 配置网页（toolbell ui）
+        - 定时任务
+        - 安装 / 升级
+        - 其他
+  - type: textarea
+    id: what
+    attributes:
+      label: 发生了什么
+      description: 期望的结果与实际结果；检测相关的问题请写明是哪个工具、本机版本、实际最新版本
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 运行 toolbell check --dry-run -v
+        2. ……
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关输出 / 日志
+      description: 可附 `toolbell status` 输出，或 `~/.config/toolbell/toolbell.log` 的相关片段（请先脱敏）
+      render: text

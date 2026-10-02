@@ -223,7 +223,10 @@ export const PAGE_HTML = /* html */ `<!doctype html>
 
   function aiSection() {
     const a = form.ai;
-    const opts = '<option value="">选择服务商快速填充…</option>' + S.presets.map((p) => '<option value="' + p.value + '">' + esc(p.label) + '</option>').join('');
+    // 按当前接口地址回显对应的服务商，否则重新渲染后下拉框会跳回占位项
+    const cur = S.presets.find((p) => p.baseURL && p.baseURL === a.baseURL);
+    const opts = '<option value="">选择服务商快速填充…</option>' +
+      S.presets.map((p) => '<option value="' + p.value + '"' + (cur && cur.value === p.value ? ' selected' : '') + '>' + esc(p.label) + '</option>').join('');
     const body = !a.enabled ? '' :
       '<label class="field"><span>服务商</span><select id="preset">' + opts + '</select></label>' +
       '<div class="grid2"><label class="field"><span>接口地址（OpenAI 兼容，到 /v1 这一级）</span><input type="text" data-ai="baseURL" value="' + esc(a.baseURL) + '"></label>' +

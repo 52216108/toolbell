@@ -1,5 +1,9 @@
 # toolbell 🔔
 
+[![CI](https://github.com/52216108/toolbell/actions/workflows/ci.yml/badge.svg)](https://github.com/52216108/toolbell/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/52216108/toolbell)](https://github.com/52216108/toolbell/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 > 你的开发工具有新版了，它会告诉你。
 
 toolbell 会自动扫描你电脑上**主动安装**的开发工具（Homebrew、npm / pnpm 全局包、uv、pipx、cargo、GitHub Release 二进制、本地 git 克隆、Claude Code 插件……），每天定时检测有没有新版本，推送到**飞书 / 企业微信 / 钉钉**群机器人。可选接入大模型，把一堆 changelog 读成「哪些对你真正有影响」。
@@ -10,9 +14,17 @@ toolbell 会自动扫描你电脑上**主动安装**的开发工具（Homebrew�
 - **网页可视化配置**：`toolbell ui` 打开本地网页，勾选要跟踪的工具（每个工具附中文简介）、配置渠道和 AI，一目了然。
 - **AI 解读 changelog（可选）**：自带 Key，支持任何 OpenAI 兼容接口（DeepSeek、火山方舟/豆包、通义千问、OpenAI、OpenRouter…）。一次跨好几个版本时，会拉取区间内**全部** release notes，而不是只看首尾两版。
 
-## 效果示例
+## 配置网页
 
-每天定时检测，有可更新的工具时推送一条消息（全部最新时默认不打扰）：
+运行 `toolbell` 打开本地配置页：每个工具附中文简介，勾选要跟踪的即可；渠道、AI、定时都在同一页完成。
+
+![配置网页：跟踪的工具](docs/images/ui-tools.png)
+
+![配置网页：通知渠道与 AI 解读](docs/images/ui-settings.png)
+
+## 推送效果
+
+每天定时检测，有可更新的工具时往群里推送一条消息（全部最新时默认不打扰）：
 
 ```text
 🔔 toolbell 更新提醒 · my-mac · 2026-10-03 09:30

@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 安全问题（私密报告）
+    url: https://github.com/52216108/toolbell/security/advisories/new
+    about: 可能导致凭证泄露或被他人利用的问题，请私密报告，不要公开提 Issue

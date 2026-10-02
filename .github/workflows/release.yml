@@ -1,0 +1,60 @@
+name: Release
+
+# 推送 v* tag 时自动发布：校验版本 → 测试 → 构建 → 打包 toolbell.tgz → 创建 GitHub Release
+# 发布流程见 CONTRIBUTING.md「发布新版本」
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 校验 tag 与 package.json 版本一致
+        run: |
+          pkg="v$(node -p "require('./package.json').version")"
+          if [ "$pkg" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME 与 package.json 版本 $pkg 不一致"
+            exit 1
+          fi
+
+      - name: 从 CHANGELOG 提取本版本说明
+        run: |
+          sh scripts/changelog-section.sh "${GITHUB_REF_NAME#v}" > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "::error::CHANGELOG.md 里没有 ${GITHUB_REF_NAME#v} 的更新记录"
+            exit 1
+          fi
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+      - name: 打包
+        run: |
+          npm pack --silent
+          mv "toolbell-${GITHUB_REF_NAME#v}.tgz" toolbell.tgz
+          # 装一次确认安装包可用
+          npm i -g ./toolbell.tgz
+          toolbell --version
+
+      - name: 创建 Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            printf '安装 / 升级：\n\n```bash\nnpm i -g --prefer-online https://github.com/%s/releases/latest/download/toolbell.tgz\ntoolbell\n```\n\n' "$GITHUB_REPOSITORY"
+            cat release-notes.md
+          } > body.md
+          gh release create "$GITHUB_REF_NAME" toolbell.tgz --title "$GITHUB_REF_NAME" --notes-file body.md --verify-tag
