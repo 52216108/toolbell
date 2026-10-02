@@ -11,22 +11,39 @@ toolbell 会自动扫描你电脑上**主动安装**的开发工具（Homebrew�
 
 ## 安装
 
+### 方式一：让 AI Agent 帮你装（推荐）
+
+把下面这段话整段复制给你的 AI 编程助手（Claude Code、Codex、Cursor 等），它会一步步帮你装好，需要你决定的地方会停下来问你：
+
+```text
+请帮我安装并配置 toolbell（https://github.com/52216108/toolbell）：一个检测本机开发工具更新、推送到飞书/企业微信/钉钉的命令行工具。按以下步骤执行，每步检查输出，出错就停下告诉我原因：
+
+1. 运行 node -v，确认 Node.js ≥ 20；不满足就停下告诉我。只支持 macOS 和 Linux。
+2. 运行 npm i -g github:52216108/toolbell 安装，再用 toolbell --version 确认。
+3. 运行 toolbell list，按来源简要汇总发现的工具给我看，问我有没有不想跟踪的；对我说不要的，逐个执行 toolbell ignore <key>（key 是 list 输出每行最后一列）。
+4. 问我要推送到哪个渠道（飞书 / 企业微信 / 钉钉）和群机器人的 webhook 地址；飞书、钉钉如果开了「加签」，再问我要密钥。执行：
+   toolbell channel add <feishu|wecom|dingtalk> <webhook> [--secret <密钥>]
+   钉钉如果用的是「自定义关键词」安全设置，提醒我把关键词设为 toolbell。我说不需要通知就跳过这步。
+5. 问我要不要开启「AI 解读 changelog」（需要我自己的大模型 API Key）。要的话问清服务商和模型名，执行：
+   toolbell ai set --provider <deepseek|ark|dashscope|openai|openrouter> --model <模型名> --profile "<我的技术栈>"
+   其他 OpenAI 兼容接口用 --base-url <地址> 代替 --provider。--profile 可以根据你对我当前项目的了解来写，写之前给我确认。
+   注意：不要在对话里向我索要 API Key。请让我自己打开终端运行 toolbell ai key 输入。
+6. 问我有没有自己 clone 的 GitHub 仓库、或直接下载 GitHub Release 的工具要跟踪，有的话分别用 toolbell repo add <路径> 和 toolbell release add <名称> --repo <owner/repo> --version-cmd "<取版本的命令>" 登记。
+7. 问我每天几点检测（默认 09:30），执行 toolbell schedule <HH:MM>。
+8. 执行 toolbell check --dry-run，把结果给我看。我确认后执行 toolbell test-notify 发一条真实消息，请我去群里确认收到。
+9. 最后运行 toolbell status 做个汇总。
+
+注意：toolbell 只检测、不升级，不要替我执行任何升级命令；也不要运行 toolbell init（那是给人用的交互式向导）。
+```
+
+### 方式二：自己装
+
 ```bash
-npm i -g toolbell
+npm i -g github:52216108/toolbell
 toolbell init
 ```
 
-> 需要 Node.js ≥ 20。定时任务会指向全局安装的 toolbell，用 `npx toolbell` 临时运行时只能手动检测。
-
-> ⚠️ 尚未发布到 npm，目前请从源码安装：
->
-> ```bash
-> git clone https://github.com/52216108/toolbell.git && cd toolbell
-> pnpm install && pnpm build && npm i -g .
-> toolbell init
-> ```
-
-`init` 会依次：扫描本机工具并让你勾选 → 选择是否跟踪本地 git 仓库 → 配置通知渠道 → 配置 AI 解读（可跳过）→ 设定每天检测时间并注册定时任务。
+> 需要 Node.js ≥ 20。`init` 是交互式向导，会依次：扫描本机工具并让你勾选 → 选择是否跟踪本地 git 仓库 → 配置通知渠道 → 配置 AI 解读（可跳过）→ 设定每天检测时间并注册定时任务。
 
 ## 常用命令
 
@@ -40,6 +57,10 @@ toolbell init
 | `toolbell schedule 08:45` | 修改每天检测时间；`--off` 取消 |
 | `toolbell test-notify` | 真实检测一次并强制推送，确认渠道可用 |
 | `toolbell status` | 查看定时任务与最近一次结果 |
+| `toolbell channel add feishu <webhook> [--secret …]` | 添加通知渠道（`channel list` / `channel remove` 管理） |
+| `toolbell ai set --provider deepseek --model …` | 设置 AI 接口与模型；`toolbell ai key` 在终端输入 Key；`ai off` 关闭 |
+| `toolbell repo add ~/some-repo` | 跟踪本地 clone 的仓库（只检测不 pull） |
+| `toolbell release add <名称> --repo owner/repo --version-cmd "…"` | 跟踪直接下载 GitHub Release 的工具 |
 
 ## 支持的来源
 
@@ -58,7 +79,13 @@ toolbell init
 
 ### 登记 GitHub Release 二进制
 
-直接下载 release 的工具没法自动识别，在 `~/.config/toolbell/config.json` 里加：
+直接下载 release 的工具没法自动识别，需要登记：
+
+```bash
+toolbell release add multica --repo multica-ai/multica --version-cmd "multica --version" --update-cmd "multica update"
+```
+
+等价于在 `~/.config/toolbell/config.json` 里加：
 
 ```json
 "githubReleases": [

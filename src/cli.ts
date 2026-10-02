@@ -3,6 +3,7 @@ import pc from 'picocolors';
 import { readFile } from 'node:fs/promises';
 import { discoverAll, runCheck } from './check.js';
 import { configPath, defaultConfig, lastRunPath, loadConfig, logPath, saveConfig } from './config.js';
+import { registerConfigCommands } from './config-commands.js';
 import { runInit } from './init.js';
 import { renderMarkdown } from './render.js';
 import { installSchedule, isEphemeralInstall, scheduleStatus, uninstallSchedule } from './schedule.js';
@@ -78,7 +79,7 @@ program
   .command('ignore <key>')
   .description('不再跟踪某个工具，key 形如 brew:cocoapods（见 toolbell list）')
   .action(async (key: string) => {
-    const config = await requireConfig();
+    const config = (await loadConfig()) ?? defaultConfig();
     if (!config.exclude.includes(key)) config.exclude.push(key);
     await saveConfig(config);
     console.log(`已排除 ${key}`);
@@ -88,7 +89,7 @@ program
   .command('unignore <key>')
   .description('恢复跟踪某个工具')
   .action(async (key: string) => {
-    const config = await requireConfig();
+    const config = (await loadConfig()) ?? defaultConfig();
     config.exclude = config.exclude.filter((k) => k !== key);
     await saveConfig(config);
     console.log(`已恢复跟踪 ${key}`);
@@ -100,7 +101,7 @@ program
   .option('--off', '取消定时任务')
   .action(async (time: string | undefined, opts: { off?: boolean }) => {
     if (opts.off) return console.log(await uninstallSchedule());
-    const config = await requireConfig();
+    const config = (await loadConfig()) ?? defaultConfig();
     const t = time ?? config.schedule?.time ?? '09:30';
     if (await isEphemeralInstall()) {
       console.error(pc.yellow('当前通过 npx 临时运行，定时任务指向的文件可能被清理。请先 npm i -g toolbell'));
@@ -152,6 +153,8 @@ program
       console.log('最近一次：暂无');
     }
   });
+
+registerConfigCommands(program);
 
 program.parseAsync().catch((err: unknown) => {
   console.error(pc.red((err as Error).message));
