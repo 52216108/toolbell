@@ -74,8 +74,8 @@ toolbell
 ### 升级与卸载
 
 ```bash
-# 升级：重新执行安装命令即可，配置保留
-npm i -g https://github.com/52216108/toolbell/releases/latest/download/toolbell.tgz
+# 升级：重新安装即可，配置保留（--prefer-online 避免 npm 按地址缓存、装回旧版本）
+npm i -g --prefer-online https://github.com/52216108/toolbell/releases/latest/download/toolbell.tgz
 
 # 卸载：先取消定时任务，再删除程序（配置在 ~/.config/toolbell，按需自行删除）
 toolbell schedule --off
