@@ -97,7 +97,8 @@ export function formulaResult(tool: Tool, s: BrewFormulaState): CheckResult {
   const base = { tool, latest: s.latest, repo: s.repo, updateCommand: `brew upgrade ${s.fullName}` };
   // --HEAD 安装的版本形如 HEAD-abc1234，和 stable 永远不等；brew 自己也要 --fetch-HEAD 才判断，这里不比对
   if (s.installed.startsWith('HEAD')) {
-    return { ...base, status: 'latest', latest: s.installed, note: '以 --HEAD 安装，不做版本比对' };
+    // 不加 note：note 会进推送的「提示」区，HEAD 安装是用户有意为之，每天提示是噪音
+    return { ...base, status: 'latest', latest: s.installed };
   }
   // 和 brew 自己的判断一致：版本串不同即落后（brew 的版本号格式太杂，比大小不可靠）
   const outdated = s.installed !== s.latest;

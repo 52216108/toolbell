@@ -47,3 +47,11 @@ describe('passthroughEnv', () => {
     expect(xml).toContain('<key>XDG_CONFIG_HOME</key><string>/x</string>');
   });
 });
+
+describe('passthroughEnv 凭证', () => {
+  it('值里带账号密码的代理不透传', () => {
+    expect(passthroughEnv({ https_proxy: 'http://u:p@proxy:8080', http_proxy: 'http://proxy:8080' })).toEqual({
+      http_proxy: 'http://proxy:8080',
+    });
+  });
+});

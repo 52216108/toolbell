@@ -74,7 +74,8 @@ const SECRET_LIKE = /TOKEN|SECRET|PASSWORD|PASSWD|KEY|CREDENTIAL|AUTH/i;
 export function passthroughEnv(env: NodeJS.ProcessEnv = process.env): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(env)) {
-    if (!v || SECRET_LIKE.test(k)) continue;
+    // 值里带凭证的（如 http://user:pass@proxy）同样不落盘
+    if (!v || SECRET_LIKE.test(k) || /:\/\/[^/\s:@]+:[^/\s@]+@/.test(v)) continue;
     if (PASSTHROUGH_ENV.includes(k) || k.startsWith('HOMEBREW_')) out[k] = v;
   }
   return out;
