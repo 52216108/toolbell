@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { platform } from 'node:os';
 import { discoverAll, runCheck } from '../check.js';
+import { describeTools, fillChineseWithAi } from '../describe/index.js';
 import { defaultConfig, lastRunPath, loadConfig, saveConfig } from '../config.js';
 import { sendAll } from '../notifiers/index.js';
 import { renderMarkdown } from '../render.js';
@@ -105,6 +106,15 @@ export async function startUi(opts: UiOptions = {}): Promise<void> {
         const sent = await sendAll(report, config.channels, (m) => logs.push(m));
         return json(res, 200, { sent: sent.map((s) => ({ type: s.type, ok: s.ok, error: s.error })) });
       }
+      case '/api/describe-ai': {
+        const config = (await loadConfig()) ?? defaultConfig();
+        if (!config.ai?.apiKey) throw new PatchError('请先在「AI 解读」里填写接口、模型与 API Key 并保存');
+        const found = await discoverAll({ dryRun: true, log: () => {}, config: { ...config, scanners: {} } });
+        const n = await fillChineseWithAi([...found.values()].flat(), config.ai, () => {}).catch((e: Error) => {
+          throw new PatchError(e.message);
+        });
+        return json(res, 200, { filled: n, state: await state() });
+      }
       case '/api/shutdown': {
         json(res, 200, { ok: true });
         setTimeout(() => shutdown('配置页已关闭'), 100);
@@ -123,12 +133,20 @@ export async function startUi(opts: UiOptions = {}): Promise<void> {
       .then((s) => JSON.parse(s) as { startedAt: string; outdated: { key: string; latest?: string }[] })
       .catch(() => undefined);
     const outdated = Object.fromEntries((lastRun?.outdated ?? []).map((o) => [o.key, o.latest ?? '']));
+    const descs = await describeTools([...found.values()].flat());
     return {
       config: publicConfig(config),
       sources: [...found].map(([s, tools]) => ({
         id: s.id,
         label: s.label,
-        tools: tools.map((t) => ({ key: toolKey(t), name: t.name, installed: t.installed, latest: outdated[toolKey(t)] })),
+        tools: tools.map((t) => ({
+          key: toolKey(t),
+          name: t.name,
+          installed: t.installed,
+          latest: outdated[toolKey(t)],
+          zh: descs.get(toolKey(t))?.zh,
+          en: descs.get(toolKey(t))?.en,
+        })),
       })),
       lastRunAt: lastRun?.startedAt,
       schedule: (await scheduleStatus()).detail,

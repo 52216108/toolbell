@@ -7,6 +7,7 @@ toolbell 会自动扫描你电脑上**主动安装**的开发工具（Homebrew�
 - **只提醒，不自动升级**：升级可能连带改动运行时（例如 brew 升级某个包时顺带升级 ruby，导致项目里的原生扩展失效），什么时候升由你决定。消息里会直接给出升级命令。
 - **装完自动发现**：不用手写清单。只看你主动装的（`brew leaves`），不把依赖库算进来刷屏；以后新装的工具自动纳入。
 - **国内办公 IM 原生支持**：飞书、企业微信、钉钉，含飞书/钉钉加签。
+- **网页可视化配置**：`toolbell ui` 打开本地网页，勾选要跟踪的工具（每个工具附中文简介）、配置渠道和 AI，一目了然。
 - **AI 解读 changelog（可选）**：自带 Key，支持任何 OpenAI 兼容接口（DeepSeek、火山方舟/豆包、通义千问、OpenAI、OpenRouter…）。一次跨好几个版本时，会拉取区间内**全部** release notes，而不是只看首尾两版。
 
 ## 安装
@@ -27,7 +28,7 @@ toolbell 会自动扫描你电脑上**主动安装**的开发工具（Homebrew�
 5. 问我要不要开启「AI 解读 changelog」（需要我自己的大模型 API Key）。要的话问清服务商和模型名，执行：
    toolbell ai set --provider <deepseek|ark|dashscope|openai|openrouter> --model <模型名> --profile "<我的技术栈>"
    其他 OpenAI 兼容接口用 --base-url <地址> 代替 --provider。--profile 可以根据你对我当前项目的了解来写，写之前给我确认。
-   注意：不要在对话里向我索要 API Key。请让我自己打开终端运行 toolbell ai key 输入。
+   注意：不要在对话里向我索要 API Key。请让我自己打开终端运行 toolbell ai key 输入，或者运行 toolbell ui 在网页里填写。
 6. 问我有没有自己 clone 的 GitHub 仓库、或直接下载 GitHub Release 的工具要跟踪，有的话分别用 toolbell repo add <路径> 和 toolbell release add <名称> --repo <owner/repo> --version-cmd "<取版本的命令>" 登记。
 7. 问我每天几点检测（默认 09:30），执行 toolbell schedule <HH:MM>。
 8. 执行 toolbell check --dry-run，把结果给我看。我确认后执行 toolbell test-notify 发一条真实消息，请我去群里确认收到。
@@ -40,7 +41,8 @@ toolbell 会自动扫描你电脑上**主动安装**的开发工具（Homebrew�
 
 ```bash
 npm i -g https://github.com/52216108/toolbell/releases/latest/download/toolbell.tgz
-toolbell init
+toolbell ui      # 网页配置（推荐）
+# 或 toolbell init  终端交互式配置
 ```
 
 > 需要 Node.js ≥ 20。`init` 是交互式向导，会依次：扫描本机工具并让你勾选 → 选择是否跟踪本地 git 仓库 → 配置通知渠道 → 配置 AI 解读（可跳过）→ 设定每天检测时间并注册定时任务。
@@ -49,6 +51,7 @@ toolbell init
 
 | 命令 | 作用 |
 |---|---|
+| `toolbell ui` | 打开本地网页，可视化配置（勾选工具、渠道、AI、定时） |
 | `toolbell check` | 立即检测一次，有更新就推送 |
 | `toolbell check --dry-run` | 只在终端预览，不刷新索引、不推送 |
 | `toolbell list` | 列出发现的工具及是否被跟踪 |
@@ -105,9 +108,20 @@ toolbell release add multica --repo multica-ai/multica --version-cmd "multica --
 
 > 企业微信单条 markdown 上限 4096 字节，开启 AI 解读时评估内容会被截断，完整内容建议用飞书或钉钉接收。
 
+## 工具简介
+
+列表里每个工具都附一句简介，帮你判断要不要跟踪：
+
+1. 常见工具内置中文简介（离线可用）；
+2. 其余显示包管理器自带的官方英文描述；
+3. 配置了 AI 后，可在网页里一键「用 AI 补全中文简介」，结果缓存在本机，只依据官方描述生成，不凭名字猜。
+
+欢迎提 PR 补充 `src/describe/dict-zh.ts` 里的中文简介。
+
 ## 隐私与安全
 
 - 配置保存在 `~/.config/toolbell/config.json`（权限 600），webhook、加签密钥、API Key 只存在本机。
+- `toolbell ui` 只监听 127.0.0.1，链接带一次性随机 token；已保存的 webhook、密钥、Key 不会回传到网页。
 - 发往通知渠道的只有工具名和版本号；开启 AI 解读时，工具名、版本号、changelog 原文和你填写的自我介绍会发给你配置的模型服务。
 - 访问 GitHub 时优先用 `GITHUB_TOKEN` / `GH_TOKEN` 或 `gh auth token`，没有就匿名访问（每小时 60 次）。
 

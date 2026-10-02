@@ -48,7 +48,11 @@ export const PAGE_HTML = /* html */ `<!doctype html>
   .tools { border-top: 1px solid var(--line); padding: 6px 8px; max-height: 360px; overflow: auto; }
   .tool { display: flex; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 6px; }
   .tool:hover { background: var(--accent-weak); }
-  .tool .tname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tool .tinfo { flex: 1; min-width: 0; }
+  .tool .tname { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tool .tdesc { display: block; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tool .tdesc.en { font-style: italic; }
+  .hint { font-size: 12px; color: var(--muted); }
   .tool .ver { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
   .tool.excluded .tname { color: var(--muted); }
   .badge { font-size: 11px; padding: 1px 7px; border-radius: 10px; background: var(--warn-weak); color: var(--warn); white-space: nowrap; }
@@ -152,7 +156,10 @@ export const PAGE_HTML = /* html */ `<!doctype html>
         const badge = t.latest ? '<span class="badge">可更新 → ' + esc(t.latest) + '</span>' : '';
         return '<label class="tool' + (ex ? ' excluded' : '') + '">' +
           '<input type="checkbox" data-tool="' + esc(t.key) + '"' + (ex ? '' : ' checked') + (off ? ' disabled' : '') + '>' +
-          '<span class="tname" title="' + esc(t.key) + '">' + esc(t.name) + '</span>' + badge +
+          '<span class="tinfo"><span class="tname" title="' + esc(t.key) + '">' + esc(t.name) + '</span>' +
+          (t.zh ? '<span class="tdesc" title="' + esc(t.en || t.zh) + '">' + esc(t.zh) + '</span>'
+            : t.en ? '<span class="tdesc en" title="' + esc(t.en) + '">' + esc(t.en) + '</span>' : '') +
+          '</span>' + badge +
           '<span class="ver">' + esc(t.installed) + '</span></label>';
       }).join('') || '<div class="empty">没有发现工具</div>';
       return '<details class="source' + (off ? ' off' : '') + '"' + (empty ? '' : ' open') + '>' +
@@ -163,9 +170,18 @@ export const PAGE_HTML = /* html */ `<!doctype html>
         '</summary><div class="tools">' + rows + '</div></details>';
     }).join('');
     return '<section><h2>跟踪的工具</h2><p class="desc">取消勾选的工具不再检测更新；以后新装的工具会自动纳入。共 ' + total + ' 项，当前跟踪 ' + tracked + ' 项。「可更新」来自上一次检测结果。</p>' +
+      describeBar() +
       '<div class="row search"><input type="text" id="q" placeholder="搜索工具名…" value="' + esc(form.q) + '">' +
       '<label class="switch" style="white-space:nowrap"><input type="checkbox" id="only-outdated"' + (form.onlyOutdated ? ' checked' : '') + '>只看可更新</label></div>' +
       (groups || '<div class="empty">没有匹配的工具</div>') + '</section>';
+  }
+
+  function describeBar() {
+    const missing = S.sources.reduce((n, s) => n + s.tools.filter((t) => !t.zh).length, 0);
+    if (missing === 0) return '';
+    const ready = S.config.ai.hasKey && S.config.ai.baseURL && S.config.ai.model;
+    return '<div class="row" style="margin-bottom:12px"><span class="hint">有 ' + missing + ' 个工具还没有中文简介（显示的是官方英文描述）。</span>' +
+      (ready ? '<button id="btn-describe">用 AI 补全中文简介</button>' : '<span class="hint">在下方「AI 解读」配置好模型后，可一键补全。</span>') + '</div>';
   }
 
   function channelsSection() {
@@ -267,6 +283,15 @@ export const PAGE_HTML = /* html */ `<!doctype html>
     if (d.delRepo !== undefined) { form.gitRepos.splice(+d.delRepo, 1); markDirty(); return render(); }
     if (d.addRel !== undefined) { form.githubReleases.push({ name: '', repo: '', versionCommand: '', updateCommand: '' }); markDirty(); return render(); }
     if (d.delRel !== undefined) { form.githubReleases.splice(+d.delRel, 1); markDirty(); return render(); }
+    if (el.id === 'btn-describe') {
+      return busy(el, async () => {
+        const r = await api('/api/describe-ai', {});
+        // 只刷新工具数据，不覆盖页面上未保存的编辑
+        S.sources = r.state.sources;
+        render();
+        toast(r.filled > 0 ? '已补全 ' + r.filled + ' 条中文简介' : '没有可补全的（缺少官方描述的工具不会让 AI 凭名字猜）');
+      });
+    }
   });
 
   function buildPatch() {

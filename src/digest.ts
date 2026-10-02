@@ -24,7 +24,7 @@ const SYSTEM_PROMPT = `你是一名资深开发工程师，帮用户评估本机
 - 全文控制在 1500 字以内。`;
 
 /** 错误信息里去掉 API Key：部分服务商 401 时会回显（半遮挡的）key */
-function scrub(msg: string, apiKey: string): string {
+export function scrub(msg: string, apiKey: string): string {
   let out = apiKey ? msg.split(apiKey).join('***') : msg;
   out = out.replace(/\b(sk|ak|key)-[A-Za-z0-9*_\-.]{6,}/gi, '$1-***');
   return out.replace(/Bearer\s+\S+/gi, 'Bearer ***');

@@ -10,12 +10,14 @@ import { installSchedule, isEphemeralInstall, scheduleStatus, uninstallSchedule 
 import type { Config } from './types.js';
 import { toolKey } from './types.js';
 
+declare const __TOOLBELL_VERSION__: string;
+
 const program = new Command();
 
 program
   .name('toolbell')
   .description('扫描本机开发工具，每天检测更新并推送到飞书 / 企业微信 / 钉钉（只提醒，不自动升级）')
-  .version('0.1.0');
+  .version(__TOOLBELL_VERSION__);
 
 async function requireConfig(): Promise<Config> {
   const c = await loadConfig();
@@ -63,13 +65,17 @@ program
     const config = (await loadConfig()) ?? defaultConfig();
     const excluded = new Set(config.exclude);
     const found = await discoverAll({ dryRun: true, log: () => {}, config });
+    const { describeTools } = await import('./describe/index.js');
+    const descs = await describeTools([...found.values()].flat());
     for (const [scanner, tools] of found) {
       if (tools.length === 0) continue;
       console.log(pc.bold(`\n${scanner.label}（${tools.length}）`));
       for (const t of tools) {
         const key = toolKey(t);
         const mark = excluded.has(key) ? pc.dim('✗ 已排除') : pc.green('✓');
-        console.log(`  ${mark} ${t.name} ${pc.dim(t.installed)}  ${pc.dim(key)}`);
+        const d = descs.get(key);
+        const desc = d?.zh ?? d?.en;
+        console.log(`  ${mark} ${t.name} ${pc.dim(t.installed)}  ${pc.dim(key)}${desc ? `\n      ${pc.cyan(desc.length > 70 ? `${desc.slice(0, 70)}…` : desc)}` : ''}`);
       }
     }
     console.log(pc.dim(`\n排除/恢复：toolbell ignore <key> / toolbell unignore <key>`));
