@@ -5,12 +5,18 @@
 
 ## [未发布]
 
+## [0.3.1] - 2026-10-02
+
 ### 新增
 
 - GitHub Actions：每次推送与 PR 在 macOS / Linux、Node 20 / 22 上跑类型检查、测试与构建
 - 推送 `v*` tag 自动发布 Release（校验版本号、测试、打包、附 `toolbell.tgz`）
 - `CONTRIBUTING.md`、`SECURITY.md`、Issue 与 PR 模板
 - README 加入配置网页截图与徽章
+
+### 修复
+
+- 网页：选择 AI 服务商后，下拉框正确回显所选项（之前会跳回占位项）
 
 ## [0.3.0] - 2026-10-02
 
@@ -64,7 +70,8 @@
 - macOS launchd / Linux crontab 每日定时检测；只检测、不自动升级
 - 命令：`init`、`check`、`list`、`ignore`、`schedule`、`test-notify`、`status`
 
-[未发布]: https://github.com/52216108/toolbell/compare/v0.3.0...HEAD
+[未发布]: https://github.com/52216108/toolbell/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/52216108/toolbell/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/52216108/toolbell/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/52216108/toolbell/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/52216108/toolbell/compare/v0.1.0...v0.2.0
