@@ -1,6 +1,6 @@
 {
   "name": "toolbell",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "自动扫描本机开发工具（brew / npm / uv / cargo / GitHub release / Claude Code 插件…），每天定时检测更新，推送到飞书、企业微信、钉钉，可选 AI 总结 changelog",
   "type": "module",
   "bin": {
