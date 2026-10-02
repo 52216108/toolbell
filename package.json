@@ -1,0 +1,45 @@
+{
+  "name": "toolbell",
+  "version": "0.1.0",
+  "description": "自动扫描本机开发工具（brew / npm / uv / cargo / GitHub release / Claude Code 插件…），每天定时检测更新，推送到飞书、企业微信、钉钉，可选 AI 总结 changelog",
+  "type": "module",
+  "bin": {
+    "toolbell": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "outdated",
+    "update-checker",
+    "homebrew",
+    "npm",
+    "feishu",
+    "wecom",
+    "dingtalk",
+    "changelog",
+    "claude-code"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@clack/prompts": "^1.8.1",
+    "commander": "^15.0.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "tsup": "^8.5.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}
