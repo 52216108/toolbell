@@ -156,6 +156,16 @@ program
 
 registerConfigCommands(program);
 
+program
+  .command('ui')
+  .description('打开本地网页，可视化配置要跟踪的工具、通知渠道、AI 解读与定时')
+  .option('--port <port>', '指定端口（默认随机）', (v) => Number(v))
+  .option('--no-open', '不自动打开浏览器，只打印地址')
+  .action(async (opts: { port?: number; open: boolean }) => {
+    const { startUi } = await import('./ui/server.js');
+    await startUi({ port: opts.port, open: opts.open });
+  });
+
 program.parseAsync().catch((err: unknown) => {
   console.error(pc.red((err as Error).message));
   process.exit(1);
