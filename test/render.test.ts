@@ -80,6 +80,14 @@ describe('renderMarkdown', () => {
     expect(md).toContain(TRUNCATED_NOTICE);
   });
 
+  it('AI 评估失败时在评估位置给出提示', () => {
+    const md = renderMarkdown({ ...base(results), digestError: 'HTTP 400 InvalidEndpoint.ClosedEndpoint' });
+    expect(md).toContain('## AI 影响评估');
+    expect(md).toContain('⚠️ 本次 AI 解读失败：HTTP 400 InvalidEndpoint.ClosedEndpoint');
+    // 有评估正文时不出失败提示
+    expect(renderMarkdown({ ...base(results, '正文'), digestError: 'x' })).not.toContain('AI 解读失败');
+  });
+
   it('按字节计长度时也不超限', () => {
     const digest = '中文评估😀'.repeat(2000);
     const md = renderMarkdown(base(results, digest), { maxLength: 2000, unit: 'byte' });

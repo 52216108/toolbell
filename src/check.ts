@@ -124,7 +124,9 @@ export async function runCheck(config: Config, opts: RunOptions = {}): Promise<R
     if (config.ai?.enabled && outdated.length > 0) {
       log('拉取 changelog 并生成 AI 影响评估');
       const changelogs = await collectChangelogs(report.results, log);
-      report.digest = await generateDigest(report.results, changelogs, config.ai, log);
+      const outcome = await generateDigest(report.results, changelogs, config.ai, log);
+      report.digest = outcome.text;
+      report.digestError = outcome.error;
     }
 
     report.durationMs = Date.now() - startedAt.getTime();

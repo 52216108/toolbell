@@ -180,10 +180,15 @@ export function renderMarkdown(report: Report, opts: RenderOptions = {}): string
     latestLine = '未发现需要跟踪的工具';
   }
   const digest = report.digest?.trim() ? `## AI 影响评估\n\n${report.digest.trim()}` : '';
+  // 开启了 AI 却没评估时明说，否则用户只会以为这次没有评估
+  const digestFailed =
+    !digest && report.digestError
+      ? `## AI 影响评估\n\n⚠️ 本次 AI 解读失败：${report.digestError}。请检查模型是否下线、账户额度或 API Key（可用 toolbell ai set --model 更换模型），详情见日志 toolbell.log`
+      : '';
   const footer = `⏱️ 耗时 ${(report.durationMs / 1000).toFixed(1)}s`;
 
   const join = (parts: string[]) => parts.filter(Boolean).join('\n\n');
-  const full = join([title, ...core, tipsBlock, latestLine, digest, footer]);
+  const full = join([title, ...core, tipsBlock, latestLine, digest || digestFailed, footer]);
   const max = opts.maxLength;
   if (max === undefined || measure(transform(full), unit) <= max) return transform(full);
 
@@ -207,5 +212,7 @@ export function renderMarkdown(report: Report, opts: RenderOptions = {}): string
   let keptDigest = '';
   // 剩余空间太小时整段丢弃 AI 评估，避免只剩个标题加半句话
   if (digest && remaining > 80) keptDigest = truncateText(digest, remaining - sep, unit, transform);
+  // 失败提示很短，放得下就整句保留，放不下就不出半句
+  else if (digestFailed && size(digestFailed) <= remaining) keptDigest = digestFailed;
   return transform(join([title, ...core, keptTips, latestLine, keptDigest, TRUNCATED_NOTICE, footer]));
 }

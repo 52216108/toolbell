@@ -1,5 +1,5 @@
 // AI 影响评估：把今天的更新 + changelog 原文交给 OpenAI 兼容接口，按「对用户有没有影响」分级。
-// 这是锦上添花的功能：任何失败都只记日志、返回 undefined，绝不能让通知发不出去。
+// 这是锦上添花的功能：任何失败都只记日志并返回简短原因，绝不能让通知发不出去。
 
 import { fairShare } from './changelog.js';
 import { toolKey, type AiConfig, type CheckResult } from './types.js';
@@ -66,17 +66,41 @@ export function cleanDigest(text: string): string {
   return t.replace(/^# (?=\S)/gm, '### ');
 }
 
+/** 通知里展示的失败原因：只留 HTTP 状态 + 服务商错误码，原始报文太长且可能夹带敏感信息 */
+export function briefDigestError(detail: string): string {
+  const http = detail.match(/^HTTP (\d{3})：([\s\S]*)$/);
+  if (http) {
+    let code = '';
+    try {
+      const body = JSON.parse(http[2]!) as { error?: { code?: unknown; type?: unknown } | string };
+      const e = body.error;
+      code = typeof e === 'object' && e ? String(e.code ?? e.type ?? '') : typeof e === 'string' ? e : '';
+    } catch {
+      // 非 JSON 响应（网关 HTML 等）：只报状态码
+    }
+    return `HTTP ${http[1]}${code ? ` ${code.slice(0, 80)}` : ''}`;
+  }
+  if (/timeout|aborted/i.test(detail)) return '请求超时';
+  return detail.split('\n')[0]!.slice(0, 100);
+}
+
+export interface DigestOutcome {
+  text?: string;
+  /** 已开启 AI 却没拿到评估时的简短原因 */
+  error?: string;
+}
+
 export async function generateDigest(
   results: CheckResult[],
   changelogs: Map<string, string>,
   ai: AiConfig,
   log: (msg: string) => void,
-): Promise<string | undefined> {
-  if (!ai.enabled) return undefined;
-  if (!results.some((r) => r.status === 'outdated')) return undefined;
+): Promise<DigestOutcome> {
+  if (!ai.enabled) return {};
+  if (!results.some((r) => r.status === 'outdated')) return {};
   if (!ai.baseURL || !ai.apiKey || !ai.model) {
     log('AI 总结：配置不完整（baseURL / apiKey / model），已跳过');
-    return undefined;
+    return { error: '配置不完整（接口地址 / API Key / 模型）' };
   }
   const url = `${ai.baseURL.replace(/\/+$/, '')}/chat/completions`;
   const body = {
@@ -105,13 +129,14 @@ export async function generateDigest(
     const content = json.choices?.[0]?.message?.content;
     if (!content?.trim()) {
       log('AI 总结：接口返回内容为空，已跳过');
-      return undefined;
+      return { error: '接口返回内容为空' };
     }
-    return cleanDigest(content);
+    return { text: cleanDigest(content) };
   } catch (err) {
     const e = err as Error & { cause?: { message?: string } };
     const detail = e.cause?.message ? `${e.message}: ${e.cause.message}` : (e?.message ?? String(err));
-    log(`AI 总结失败（${ai.model}）：${scrub(detail, ai.apiKey)}`);
-    return undefined;
+    const safe = scrub(detail, ai.apiKey);
+    log(`AI 总结失败（${ai.model}）：${safe}`);
+    return { error: scrub(briefDigestError(safe), ai.apiKey) };
   }
 }

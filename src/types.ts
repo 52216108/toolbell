@@ -126,6 +126,8 @@ export interface Report {
   results: CheckResult[];
   /** AI 生成的 Markdown 影响评估；未开启或失败时为空 */
   digest?: string;
+  /** AI 已开启但评估没生成出来时的简短原因（已脱敏），通知里提示用户，免得以为本次没评估 */
+  digestError?: string;
 }
 
 export interface Notifier {

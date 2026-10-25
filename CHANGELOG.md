@@ -9,6 +9,7 @@
 
 - 贡献者行为准则 `CODE_OF_CONDUCT.md`（Contributor Covenant 2.1 中文改编）
 - 英文版 README（`README.en.md`），中英文 README 顶部可互相切换
+- AI 解读失败时（模型下线、额度用尽、Key 失效、超时等），通知里的「AI 影响评估」位置会提示失败原因与处理办法，不再静默缺失
 
 ## [0.3.1] - 2026-10-02
 
