@@ -78,10 +78,16 @@ export function briefDigestError(detail: string): string {
     } catch {
       // 非 JSON 响应（网关 HTML 等）：只报状态码
     }
-    return `HTTP ${http[1]}${code ? ` ${code.slice(0, 80)}` : ''}`;
+    // 错误码只放行常见字符，防止服务商回显的内容（含 URL、Key 片段）混进通知
+    const safeCode = /^[\w.\-]{1,80}$/.test(code) ? ` ${code}` : '';
+    return `HTTP ${http[1]}${safeCode}`;
   }
+  // 非 HTTP 错误的原文可能带接口地址（含凭证/查询串），只映射成固定文案
   if (/timeout|aborted/i.test(detail)) return '请求超时';
-  return detail.split('\n')[0]!.slice(0, 100);
+  if (/ENOTFOUND|EAI_AGAIN/i.test(detail)) return '域名解析失败';
+  if (/Invalid URL|ERR_INVALID_URL/i.test(detail)) return '接口地址无效';
+  if (/JSON/i.test(detail)) return '接口返回格式异常';
+  return '网络请求失败';
 }
 
 export interface DigestOutcome {
