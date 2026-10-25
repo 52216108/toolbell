@@ -5,6 +5,8 @@
 
 ## [未发布]
 
+## [0.3.2] - 2026-10-25
+
 ### 新增
 
 - 贡献者行为准则 `CODE_OF_CONDUCT.md`（Contributor Covenant 2.1 中文改编）
@@ -76,7 +78,8 @@
 - macOS launchd / Linux crontab 每日定时检测；只检测、不自动升级
 - 命令：`init`、`check`、`list`、`ignore`、`schedule`、`test-notify`、`status`
 
-[未发布]: https://github.com/52216108/toolbell/compare/v0.3.1...HEAD
+[未发布]: https://github.com/52216108/toolbell/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/52216108/toolbell/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/52216108/toolbell/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/52216108/toolbell/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/52216108/toolbell/compare/v0.2.0...v0.2.1
